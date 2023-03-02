@@ -21,7 +21,10 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "MY_FLASH.h"
 
+#include <string.h>
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -39,6 +42,7 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 
@@ -47,13 +51,17 @@
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+uint8_t myTestWrite[5]= {0x66,0x33,0x44,0x66,0x33} ;
+uint8_t myTestRead[5];
 
+char uartBuf[100];
 /* USER CODE END 0 */
 
 /**
@@ -84,8 +92,12 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-
+  MY_FLASH_SetSectorAddrs(7, 0x08060000); //This function (from MY_FLASH.h) will specify which sector of main memory I want to store data.
+                                          //here, sector 7 is used, and its starting address is specified.
+                                          //Fore more details, refer stm32f4 reference manual page no. 45
+  MY_FLASH_WriteN(0, myTestWrite, 5, DATA_TYPE_8); // parameters of this function are ( index, data, data size, data type).
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -95,6 +107,14 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	  // Read from flash memory
+	  MY_FLASH_ReadN(0, myTestRead, 5, DATA_TYPE_8);
+
+	  //5. Print to UART terminal for debugging
+	  			 	 	  	sprintf(uartBuf,myTestRead);
+	  			 	 	  	HAL_UART_Transmit(&huart2, (uint8_t *)uartBuf, strlen(uartBuf), 100);
+
+	  HAL_Delay(1000);
   }
   /* USER CODE END 3 */
 }
@@ -143,6 +163,39 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief USART2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART2_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART2_Init 0 */
+
+  /* USER CODE END USART2_Init 0 */
+
+  /* USER CODE BEGIN USART2_Init 1 */
+
+  /* USER CODE END USART2_Init 1 */
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 115200;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART2_Init 2 */
+
+  /* USER CODE END USART2_Init 2 */
+
 }
 
 /**
