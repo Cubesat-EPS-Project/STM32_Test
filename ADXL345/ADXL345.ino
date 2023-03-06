@@ -9,6 +9,7 @@
 * 
 ***************************************************************************/
 #include <Arduino.h>
+#include <EEPROM.h> 
 #include<Wire.h>
 #include<ADXL345_WE.h>
 #define ADXL345_I2CADDR 0x53 // 0x1D if SDO = HIGH
@@ -26,6 +27,7 @@ void setup(){
   Wire.setSCL(PB8);
   Wire.begin();
   Serial.begin(9600);
+  float r1=0.0;
   Serial.println("ADXL345_Sketch - Basic Data");
   Serial.println();
   if(!myAcc.init()){
@@ -85,14 +87,16 @@ void setup(){
 void loop() {
   xyzFloat raw = myAcc.getRawValues();
   xyzFloat g = myAcc.getGValues();
-  
+  float r=0.0;
+  EEPROM.get(11,r1);
+  EEPROM.get(12,r);
   Serial.print("Raw-x = ");
   Serial.print(raw.x);
   Serial.print("  |  Raw-y = ");
   Serial.print(raw.y);
   Serial.print("  |  Raw-z = ");
   Serial.println(raw.z);
-
+  EEPROM.put(12, raw.y);
   Serial.print("g-x   = ");
   Serial.print(g.x);
   Serial.print("  |  g-y   = ");
@@ -100,7 +104,7 @@ void loop() {
   Serial.print("  |  g-z   = ");
   Serial.println(g.z);
 
-  Serial.println();
+  Serial.println(r);Serial.println(r1);
   
   delay(1000);
   
