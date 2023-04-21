@@ -6,7 +6,7 @@ float ref=4.09;
 
 void setup() {  
 
-  Serial.begin(9600);
+  Serial.begin(115200);
 }
 float av1;
 float av2;
@@ -21,9 +21,9 @@ void loop() {
   for(int i=0;i<200;i++)
   {
   float SensorRead = analogRead(A0)*(5.0 / 1023.0);     //We read the sensor output  
-  float Current = (SensorRead-2.44)/multiplier;                  //Calculate the current value508
+  float Current = (SensorRead-2.444)/multiplier;                  //Calculate the current value508
   float SensorRead2 = analogRead(A1)*(5.0 / 1023.0);     //We read the sensor output  
-  float Current2 = (SensorRead2-2.49)/multiplier;                  //Calculate the current value
+  float Current2 = (SensorRead2-2.490)/multiplier;                  //Calculate the current value
   float adc=analogRead(A2);
   //Serial.println(adc);
   float volt= ((adc*ref)/1024)/(R2/(R1+R2));
