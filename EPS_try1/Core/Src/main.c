@@ -23,7 +23,7 @@
 /* USER CODE BEGIN Includes */
 #include "ssd1306.h"
 #include "ssd1306_tests.h"
-
+#include "ADXL345.h"
 
 #include <stdbool.h>
 #include <string.h>
@@ -67,66 +67,12 @@ void usDelay(uint32_t uSec);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-uint8_t myTxData[13] ="Hello World\r\n";
-
-//Speed of sound in cm/usec
-const float speedOfSound = 0.0343/2;
-float distance;
-
+uint8_t myTxData[13] ="---------\r\n";
+int16_t x, y, z;
 char uartBuf[100];
+//Speed of sound in cm/usec
 
 
-char buf[20];
-uint32_t numTicks = 0;//for loop_ultrasonic
-void loop_oled(float distance) {
-	// Blue button pressed - repeat the test
-    //if(HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13) == GPIO_PIN_RESET) {
-    	ssd1306_Init(); //very imp....must
-    	ssd1306_Fill(White);//fill background with white
-
-    	    sprintf(buf,"%f",distance);
-
-    	    ssd1306_SetCursor(2,0);
-
-    	    ssd1306_WriteString(buf, Font_11x18, Black);
-
-    	    ssd1306_UpdateScreen();
-   // }
-}
-
-float loop_ultrasonic(){
-      //Set TRIG to LOW for few uSec
-		HAL_GPIO_WritePin(TRIG_GPIO_Port, TRIG_Pin, GPIO_PIN_RESET);
-		usDelay(3);
-
-		//*** START Ultrasonic measure routine ***//
-		//1. Output 10 usec TRIG
-		HAL_GPIO_WritePin(TRIG_GPIO_Port, TRIG_Pin, GPIO_PIN_SET);
-		usDelay(10);
-		HAL_GPIO_WritePin(TRIG_GPIO_Port, TRIG_Pin, GPIO_PIN_RESET);
-
-		//2. Wait for ECHO pin rising edge
-		while(HAL_GPIO_ReadPin(ECHO_GPIO_Port, ECHO_Pin) == GPIO_PIN_RESET);
-
-		//3. Start measuring ECHO pulse width in usec
-		numTicks = 0;
-		while(HAL_GPIO_ReadPin(ECHO_GPIO_Port, ECHO_Pin) == GPIO_PIN_SET)
-		{
-			numTicks++;
-			usDelay(2); //2.8usec
-		};
-
-		//4. Estimate distance in cm
-		distance = (numTicks + 0.0f)*2.8*speedOfSound;
-		//5. Print to UART terminal for debugging
-			 	 	  	//	sprintf(uartBuf, "Distance (cm)  = %.1f\r\n", distance);
-			 	 	  	//	HAL_UART_Transmit(&huart2, (uint8_t *)uartBuf, strlen(uartBuf), 100);
-
-			 	 	  	//	HAL_Delay(1000);
-
-		return distance;
-
-}
 /* USER CODE END 0 */
 
 /**
@@ -136,7 +82,7 @@ float loop_ultrasonic(){
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-	uint32_t numTicks = 0;
+
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -161,6 +107,8 @@ int main(void)
   MX_TIM4_Init();
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
+  ssd1306_Init();
+  adxl_init();
 
   /* USER CODE END 2 */
 
@@ -168,11 +116,23 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
     {
-  	  distance =loop_ultrasonic();
-  	  loop_oled(distance);
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	  x=adxl_readx();
+	  y=adxl_ready();
+	  z=adxl_readz();
+
+	  sprintf(uartBuf, "X  = %d\r\n",x);
+	  HAL_UART_Transmit(&huart2, (uint8_t *)uartBuf, strlen(uartBuf), 100);
+	  sprintf(uartBuf, "Y  = %d\r\n",y);
+	  HAL_UART_Transmit(&huart2, (uint8_t *)uartBuf, strlen(uartBuf), 100);
+	  sprintf(uartBuf, "Z  = %d\r\n",z);
+	  HAL_UART_Transmit(&huart2, (uint8_t *)uartBuf, strlen(uartBuf), 100);
+	  sprintf(uartBuf, "%s\r\n",myTxData);
+	  HAL_UART_Transmit(&huart2, (uint8_t *)uartBuf, strlen(uartBuf), 100);
+	  HAL_Delay(500);
     }
   /* USER CODE END 3 */
 }
@@ -342,34 +302,10 @@ static void MX_USART2_UART_Init(void)
   */
 static void MX_GPIO_Init(void)
 {
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5|TRIG_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin : PC13 */
-  GPIO_InitStruct.Pin = GPIO_PIN_13;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : PA5 TRIG_Pin */
-  GPIO_InitStruct.Pin = GPIO_PIN_5|TRIG_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : ECHO_Pin */
-  GPIO_InitStruct.Pin = ECHO_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(ECHO_GPIO_Port, &GPIO_InitStruct);
 
 }
 

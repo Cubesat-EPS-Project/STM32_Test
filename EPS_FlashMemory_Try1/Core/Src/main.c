@@ -42,7 +42,9 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
- UART_HandleTypeDef huart2;
+ I2C_HandleTypeDef hi2c1;
+
+UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 
@@ -52,14 +54,15 @@
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
+static void MX_I2C1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-uint8_t myTestWrite[5]= {0x66,0x33,0x44,0x66,0x33} ;
-uint8_t myTestRead[5];
+uint8_t myTestWrite[6]= {'G','U','V','I','N','D'} ;
+uint8_t myTestRead[6];
 
 char uartBuf[100];
 /* USER CODE END 0 */
@@ -93,26 +96,61 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART2_UART_Init();
+  MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
-  MY_FLASH_SetSectorAddrs(7, 0x08060000); //This function (from MY_FLASH.h) will specify which sector of main memory I want to store data.
+//  MY_FLASH_SetSectorAddrs(7, 0x08060000); //This function (from MY_FLASH.h) will specify which sector of main memory I want to store data.
                                           //here, sector 7 is used, and its starting address is specified.
                                           //Fore more details, refer stm32f4 reference manual page no. 45
-  MY_FLASH_WriteN(0, myTestWrite, 5, DATA_TYPE_8); // parameters of this function are ( index, data, data size, data type).
+ // MY_FLASH_WriteN(0, myTestWrite, 6, DATA_TYPE_8); // parameters of this function are ( index, data, data size, data type).
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+
+	  uint8_t devices = 0u;
+	    extern I2C_HandleTypeDef hi2c1;
+
+	    printf("Searching for I2C devices on the bus...\n");
+	    /* Values outside 0x03 and 0x77 are invalid. */
+	    for (uint8_t i = 0x03u; i < 0x78u; i++)
+	    {
+	      uint8_t address = i << 1u ;
+	      /* In case there is a positive feedback, print it out. */
+	      if (HAL_OK == HAL_I2C_IsDeviceReady(&hi2c1, address, 3u, 10u))
+	      {
+	       // printf("Device found: 0x%02X\n", address);
+
+	        sprintf(uartBuf, "Device found: 0x%02X\n",address);
+	        HAL_UART_Transmit(&huart2, (uint8_t *)uartBuf, strlen(uartBuf), 100);
+
+	        devices++;
+	      }
+	    }
+	    /* Feedback of the total number of devices. */
+	    if (0u == devices)
+	    {
+	      //printf("No device found.\n");
+	      sprintf(uartBuf, "No device found.\n");
+	      HAL_UART_Transmit(&huart2, (uint8_t *)uartBuf, strlen(uartBuf), 100);
+	    }
+	    else
+	    {
+	      //printf("Total found devices: %d\n", devices);
+	      sprintf(uartBuf,"Total found devices: %d\n", devices);
+	      HAL_UART_Transmit(&huart2, (uint8_t *)uartBuf, strlen(uartBuf), 100);
+	    }
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
 	  // Read from flash memory
-	  MY_FLASH_ReadN(0, myTestRead, 5, DATA_TYPE_8);
+	 // MY_FLASH_ReadN(0, myTestRead, 6, DATA_TYPE_8);
 
 	  //5. Print to UART terminal for debugging
-	  			 	 	  	sprintf(uartBuf,myTestRead);
-	  			 	 	  	HAL_UART_Transmit(&huart2, (uint8_t *)uartBuf, strlen(uartBuf), 100);
+	  			 	 	//  	sprintf(uartBuf, "Data  = %s\r\n",myTestRead);
+	  			 	 	  //	HAL_UART_Transmit(&huart2, (uint8_t *)uartBuf, strlen(uartBuf), 100);
 
 	  HAL_Delay(1000);
   }
@@ -166,6 +204,40 @@ void SystemClock_Config(void)
 }
 
 /**
+  * @brief I2C1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_I2C1_Init(void)
+{
+
+  /* USER CODE BEGIN I2C1_Init 0 */
+
+  /* USER CODE END I2C1_Init 0 */
+
+  /* USER CODE BEGIN I2C1_Init 1 */
+
+  /* USER CODE END I2C1_Init 1 */
+  hi2c1.Instance = I2C1;
+  hi2c1.Init.ClockSpeed = 100000;
+  hi2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
+  hi2c1.Init.OwnAddress1 = 0;
+  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c1.Init.OwnAddress2 = 0;
+  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN I2C1_Init 2 */
+
+  /* USER CODE END I2C1_Init 2 */
+
+}
+
+/**
   * @brief USART2 Initialization Function
   * @param None
   * @retval None
@@ -210,6 +282,7 @@ static void MX_GPIO_Init(void)
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
